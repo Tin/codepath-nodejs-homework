@@ -6,6 +6,7 @@
 
 ```
 npm install -g eslint babel babel-eslint nodemon
+cd 0-proxy-server
 npm install
 npm start
 ```
@@ -18,6 +19,8 @@ npm start
 --url upstream host:port, this will override --host and --port value
 --log logfile path
 ```
+
+Test it
 
 ```
 babel-node -- index.js --host 127.0.0.1 --port 8000
