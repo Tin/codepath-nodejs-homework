@@ -1,13 +1,21 @@
 let http = require('http')
+let fs = require('fs')
 let request = require('request')
 let argv = require('yargs')
     .default('host', '127.0.0.1')
     .argv
 let scheme = 'http://'
 let port = argv.port || argv.host === '127.0.0.1' ? 8000 : 80
-let outputStream = argv.log ? fs.createWriteStream(argv.log) : process.stdout
-
 let log = (message) => console.log(message)
+
+let outputStream = (() => {
+    if (argv.log) {
+        log(`output to ${argv.log}`)
+        return fs.createWriteStream(argv.log)
+    } else {
+        return process.stdout
+    }
+})()
 
 let startEchoServer = (onPort) => {
     http
@@ -31,7 +39,7 @@ let startProxyServer = (onPort) => {
             argv.url ||
             `${scheme}${argv.host}:${port}`
 
-        log(`Proxying request to: ${destinationUrl + req.url}`)
+        log(`Proxying request to: ${destinationUrl}${req.url}`)
 
         req.pipe(process.stdout)
         let options = {
@@ -40,7 +48,7 @@ let startProxyServer = (onPort) => {
             method: req.method
         }
         let downstreamResponse = req.pipe(request(options))
-        log('\n\n\n' + JSON.stringify(downstreamResponse.headers))
+        outputStream.write('\n\n\n' + JSON.stringify(downstreamResponse.headers))
         downstreamResponse.pipe(outputStream)
         downstreamResponse.pipe(res)
     })
@@ -49,4 +57,4 @@ let startProxyServer = (onPort) => {
 }
 
 startEchoServer(8000)
-startEchoServer(8001)
+startProxyServer(8001)
