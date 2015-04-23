@@ -1,5 +1,11 @@
 let http = require('http')
 let request = require('request')
+let argv = require('yargs')
+    .default('host', '127.0.0.1')
+    .argv
+let scheme = 'http://'
+let port = argv.port || argv.host === '127.0.0.1' ? 8000 : 80
+let outputStream = argv.log ? fs.createWriteStream(argv.log) : process.stdout
 
 http
 .createServer((req, res) => {
@@ -13,7 +19,10 @@ http
 
 http
 .createServer((req, res) => {
-    let destinationUrl = '127.0.0.1:8000'
+    let destinationUrl = req.headers['x-desination-url'] ||
+        argv.url ||
+        `${scheme}${argv.host}:${port}`
+
     console.log(`Proxying request to: ${destinationUrl + req.url}`)
 
     req.pipe(process.stdout)
@@ -24,7 +33,7 @@ http
     }
     let downstreamResponse = req.pipe(request(options))
     process.stdout.write('\n\n\n' + JSON.stringify(downstreamResponse.headers))
-    downstreamResponse.pipe(process.stdout)
+    downstreamResponse.pipe(outputStream)
     downstreamResponse.pipe(res)
 })
 .listen(8001)
