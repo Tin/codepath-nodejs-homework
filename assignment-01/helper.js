@@ -9,5 +9,8 @@ let argv = yargv
 module.exports = {
     PORT: argv.port,
     HOST: argv.host,
-    ROOT_DIR: argv.dir
+    ROOT_DIR: argv.dir,
+    debug: function debug() {
+        console.log.apply(null, arguments)
+    }
 }
