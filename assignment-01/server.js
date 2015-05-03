@@ -9,7 +9,14 @@ console.log('Server is listening on port', helper.PORT)
 server.on('connection', (socket) => {
     socket = new JsonSocket(socket)
     socket.on('message', (message) => {
-        var result = message.a + message.b;
-        socket.sendEndMessage({result: result});
+        switch (message) {
+            case 'bye':
+                socket.sendEndMessage('bye')
+                break;
+            default:
+                socket.sendMessage(`ack ${JSON.stringify(message)}`)
+                break;
+        }
     })
+    socket.on('error', console.error)
 })
