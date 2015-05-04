@@ -52,14 +52,14 @@ class FileSync {
         this.rootDir = rootDir
         this.supportedActions = ['create', 'update', 'delete']
         let self = this
-        this.clientOperations = Insync.queue(function(payload, callback) {
+        this.clientOperations = Insync.priorityQueue(function(payload, callback) {
             let method = 'on' + helper.capitalize(payload.action)
             self[method](payload)
             .then(() => {
-                debug(`${payload.action} ${payload.type} ${payload.path} done`)
+                debug(`[${payload.updated}] ${payload.action} ${payload.type} ${payload.path} done`)
                 callback()
             }, (error) => {
-                debug(`${payload.action} ${payload.type} ${payload.path}, ${error.message ? error.message : error}`)
+                debug(`[${payload.updated}] ${payload.action} ${payload.type} ${payload.path}, ${error.message ? error.message : error}`)
                 callback()
             })
         }, 1) // run in series
@@ -167,7 +167,7 @@ class FileSync {
         assert(this.supportedActions.indexOf(payload.action) !== -1,
             `only support actions ${JSON.stringify(this.supportedActions)}, get ${payload.action}`)
         console.log('push', payload.action, payload.type, payload.path)
-        return this.clientOperations.push(payload)
+        return this.clientOperations.push(payload, payload.updated)
     }
 }
 
