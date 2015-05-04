@@ -11,10 +11,15 @@ let fileSync = new FileSync(helper.ROOT_DIR)
 server.on('connection', (socket) => {
     socket = new JsonSocket(socket)
 
-    fileSync.post(socket, 'foo/bar.txt')
+    fileSync.post(socket, 'foo/bar.txt', 'file', '123')
     .then(() => {
-        console.log('here')
-        fileSync.put(socket, 'foot/bar.txt')
+        fileSync.post(socket, 'foo/barz', 'dir')
+    })
+    .then(() => {
+        fileSync.put(socket, 'foo/bar.txt', 'file', '234')
+    })
+    .then(() => {
+        fileSync.delete(socket, 'foo', 'dir')
     })
     .then(() => {
         socket.sendMessage('bye')
