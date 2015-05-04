@@ -28,6 +28,7 @@ The `index.js` which will do.
 - [✘] Isolate client and server sync code in FileSync module (should do it)
 - [✓] Sync over tcp
 - [✓] Middleware style compositble operations chain in FileSync module
+- [✘] encode/decode file contents (binary compatible)
 
 ![Video Walkthrough](./assignment-1.gif)
 
