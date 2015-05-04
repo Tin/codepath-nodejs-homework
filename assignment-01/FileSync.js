@@ -5,6 +5,8 @@ let debug = helper.debug
 let assert = require('assert')
 let mkdirp = require('mkdirp')
 let rimraf = require('rimraf')
+let Insync = require('insync')
+let Promise = require('bluebird')
 
 require('songbird')
 
@@ -49,8 +51,24 @@ class FileSync {
     constructor(rootDir) {
         this.rootDir = rootDir
         this.supportedActions = ['create', 'update', 'delete']
+        let self = this
+        this.clientOperations = Insync.queue(function(payload, callback) {
+            let method = 'on' + helper.capitalize(payload.action)
+            self[method](payload)
+            .then(() => {
+                debug(`${payload.action} ${payload.type} ${payload.path} done`)
+                callback()
+            }, (error) => {
+                debug(`${payload.action} ${payload.type} ${payload.path}, ${error.message ? error.message : error}`)
+                callback()
+            })
+        }, 1) // run in series
+        this.clientOperations.drain = () => {
+            console.log('client operations queue is empty, waiting more')
+        }
     }
 
+    // server
     post(socket, path, type, contents) {
         return createContext(socket, 'create', this.rootDir, path, type, contents)
         .then(assertType)
@@ -58,6 +76,7 @@ class FileSync {
         .then(sendMessage)
     }
 
+    // server
     put(socket, path, type, contents) {
         return createContext(socket, 'update', this.rootDir, path, type, contents)
         .then(assertType)
@@ -65,6 +84,7 @@ class FileSync {
         .then(sendMessage)
     }
 
+    // server
     delete(socket, path, type) {
         return createContext(socket, 'delete', this.rootDir, path, type)
         .then(assertType)
@@ -72,8 +92,9 @@ class FileSync {
         .then(sendMessage)
     }
 
+    // client
     onCreate(payload) {
-        return new Promise((resolve, reject) => {
+        let p = new Promise((resolve, reject) => {
             fs.promise.stat(payload.path)
             .then((stat) => {
                 reject(new Error(`File ${payload.path} already exist`))
@@ -81,18 +102,22 @@ class FileSync {
                 if (payload.type === 'file') {
                     mkdirp.promise(path.dirname(payload.path))
                     .then(() => {
-                        // let ws = fs.createWriteStream(payload.path)
+                        let ws = fs.createWriteStream(payload.path)
                         if (payload.contents) {
-                            // ws.write(payload.contents)
+                            ws.write(payload.contents)
                         }
-                        // ws.end()
+                        ws.end()
                         resolve()
                     }, reject)
+                } else {
+                    mkdirp.promise(path.dirname(payload.path)).then(resolve, reject)
                 }
             })
         })
+        return p
     }
 
+    // client
     onUpdate(payload) {
         return new Promise((resolve, reject) => {
             fs.promise.stat(payload.path)
@@ -121,6 +146,7 @@ class FileSync {
         })
     }
 
+    // client
     onDelete(payload) {
         return new Promise((resolve, reject) => {
             fs.promise.stat(payload.path)
@@ -136,10 +162,12 @@ class FileSync {
         })
     }
 
+    // client
     onMessage(payload) {
         assert(this.supportedActions.indexOf(payload.action) !== -1,
             `only support actions ${JSON.stringify(this.supportedActions)}, get ${payload.action}`)
-        return this['on' + helper.capitalize(payload.action)](payload)
+        console.log('push', payload.action, payload.type, payload.path)
+        return this.clientOperations.push(payload)
     }
 }
 

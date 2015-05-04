@@ -13,16 +13,16 @@ server.on('connection', (socket) => {
 
     fileSync.post(socket, 'foo/bar.txt', 'file', '123')
     .then(() => {
-        fileSync.post(socket, 'foo/barz', 'dir')
+        return fileSync.post(socket, 'foo/barz', 'dir')
     })
     .then(() => {
-        fileSync.put(socket, 'foo/bar.txt', 'file', '234')
+        return fileSync.put(socket, 'foo/bar.txt', 'file', '234')
     })
     .then(() => {
-        fileSync.delete(socket, 'foo', 'dir')
+        return fileSync.delete(socket, 'foo', 'dir')
     })
     .then(() => {
-        socket.sendMessage('bye')
+        return socket.sendMessage('bye')
     })
 
     socket.on('message', (message) => {

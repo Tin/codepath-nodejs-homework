@@ -21,12 +21,6 @@ socket.on('connect', () => {
                 break;
             default:
                 fileSync.onMessage(message)
-                .then(() => {
-                    sendMessage(`${message.action} ${message.path} done`)
-                })
-                .catch((error) => {
-                    sendMessage(`${message.action} ${message.path}, ${error.message ? error.message : error}`)
-                })
                 break;
         }
     })
