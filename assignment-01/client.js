@@ -62,7 +62,8 @@ async function fetch(filePath) {
 async function listenForChanges() {
     console.log('Client start listening changes')
     let socket = new JsonSocket(new net.Socket())
-    socket.connect(helper.PORT, helper.HOST)
+    socket.connect(helper.TCP_PORT, helper.HOST)
+    console.log(`dir is ${helper.ROOT_DIR}`)
     let fileSync = new FileSync(helper.ROOT_DIR)
 
     function sendMessage(message) {
@@ -71,6 +72,7 @@ async function listenForChanges() {
     }
 
     socket.on('connect', () => {
+        console.log(`connect to server at ${helper.HOST}${helper.TCP_PORT}`)
         socket.on('message', (message) => {
             switch (message) {
                 case 'bye':

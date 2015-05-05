@@ -12,16 +12,20 @@ function createServer() {
     server.on('connection', (socket) => {
         socket = new JsonSocket(socket)
 
-        fileSync.post(socket, 'foo/bar.txt', 'file', '123')
+        // Simulate file changes, TODO: hook to fs.watch
+        fileSync.post(socket, 'foo', 'dir')
+        .then(() => {
+            fileSync.post(socket, 'foo/bar.txt', 'file', '123')
+        })
         .then(() => {
             return fileSync.post(socket, 'foo/barz', 'dir')
         })
         .then(() => {
             return fileSync.put(socket, 'foo/bar.txt', 'file', '234')
         })
-        .then(() => {
-            return fileSync.delete(socket, 'foo', 'dir')
-        })
+        // .then(() => {
+        //     return fileSync.delete(socket, 'foo', 'dir')
+        // })
         .then(() => {
             return socket.sendMessage('bye')
         })
