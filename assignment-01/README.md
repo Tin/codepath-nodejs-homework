@@ -8,13 +8,13 @@ Time spent: `6h`
 
 #### Required
 
-- [ ] Client can make GET requests to get file or directory contents
-- [ ] Client can make HEAD request to get just the GET headers 
-- [ ] Client can make PUT requests to create new directories and files with content
-- [ ] Client can make POST requests to update the contents of a file
-- [ ] Client can make DELETE requests to delete files and folders
-- [ ] Server will serve from `--dir` or cwd as root
-- [ ] Client will sync from server over TCP to cwd or CLI `dir` argument
+- [✓] Client can make GET requests to get file or directory contents
+- [✓] Client can make HEAD request to get just the GET headers 
+- [✓] Client can make PUT requests to create new directories and files with content
+- [✓] Client can make POST requests to update the contents of a file
+- [✓] Client can make DELETE requests to delete files and folders
+- [✓] Server will serve from `--dir` or cwd as root
+- [✓] Client will sync from server over TCP to cwd or CLI `dir` argument
 
 #### Optional
 
@@ -28,15 +28,12 @@ Time spent: `6h`
 
 #### The TCP sync server/client
 
-- [✓] Server will send a list of file system changes to client
-- [✘] First time's full system sync
-- [✘] Client ask for folder or file, and sync (should be easy)
+- [✓] Client initiate full sync at begining via http
+- [✓] Server will forward changes to other client
 - [✓] Client apply server's change's action in sequence, so it won't conflicts
-- [✓] Sync logic is in separate module
-- [✘] Isolate client and server sync code in FileSync module (should do it)
-- [✓] Sync over tcp
+- [✓] Sync logic is in separate module, so server/client can both send file changs and apply change
+- [✓] Sync over tcp, push changes
 - [✓] Middleware style compositble operations chain in FileSync module
-- [✘] encode/decode file contents (binary compatible)
 
 ### Walkthrough
 
