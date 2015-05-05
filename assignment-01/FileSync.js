@@ -27,16 +27,10 @@ function assertType(ctx) {
     return Promise.resolve(ctx)
 }
 
-function getTargetFrom(ctx) {
-    ctx.target = path.join(ctx.rootDir, ctx.path)
-    debug(ctx.action, ctx.target)
-    return Promise.resolve(ctx)
-}
-
 function sendMessage(ctx) {
     let message = {
         action: ctx.action,
-        path: ctx.target,
+        path: ctx.path,
         type: ctx.type,
         contents: ctx.contents, // TODO: base64,
         updated: new Date().getTime()
@@ -72,7 +66,6 @@ class FileSync {
     post(socket, path, type, contents) {
         return createContext(socket, 'create', this.rootDir, path, type, contents)
         .then(assertType)
-        .then(getTargetFrom)
         .then(sendMessage)
     }
 
@@ -80,7 +73,6 @@ class FileSync {
     put(socket, path, type, contents) {
         return createContext(socket, 'update', this.rootDir, path, type, contents)
         .then(assertType)
-        .then(getTargetFrom)
         .then(sendMessage)
     }
 
@@ -88,21 +80,21 @@ class FileSync {
     delete(socket, path, type) {
         return createContext(socket, 'delete', this.rootDir, path, type)
         .then(assertType)
-        .then(getTargetFrom)
         .then(sendMessage)
     }
 
     // client
     onCreate(payload) {
         let p = new Promise((resolve, reject) => {
-            fs.promise.stat(payload.path)
+            let filePath = path.join(this.rootDir, payload.path)
+            fs.promise.stat(filePath)
             .then((stat) => {
-                reject(new Error(`File ${payload.path} already exist`))
+                reject(new Error(`File ${filePath} already exist`))
             }, () => {
                 if (payload.type === 'file') {
-                    mkdirp.promise(path.dirname(payload.path))
+                    mkdirp.promise(path.dirname(filePath))
                     .then(() => {
-                        let ws = fs.createWriteStream(payload.path)
+                        let ws = fs.createWriteStream(filePath)
                         if (payload.contents) {
                             ws.write(payload.contents)
                         }
@@ -110,7 +102,7 @@ class FileSync {
                         resolve()
                     }, reject)
                 } else {
-                    mkdirp.promise(path.dirname(payload.path)).then(resolve, reject)
+                    mkdirp.promise(path.dirname(filePath)).then(resolve, reject)
                 }
             })
         })
@@ -120,14 +112,15 @@ class FileSync {
     // client
     onUpdate(payload) {
         return new Promise((resolve, reject) => {
-            fs.promise.stat(payload.path)
+            let filePath = path.join(this.rootDir, payload.path)
+            fs.promise.stat(filePath)
             .then((stat) => {
                 if (stat.isDirectory() && payload.type === 'dir') {
-                    reject(new Error(`Can\'t update directory ${payload.path}`))
+                    reject(new Error(`Can\'t update directory ${filePath}`))
                 } else if (payload.type === 'file') {
-                    fs.promise.truncate(payload.path, 0)
+                    fs.promise.truncate(filePath, 0)
                     .then(() => {
-                        let ws = fs.createWriteStream(payload.path)
+                        let ws = fs.createWriteStream(filePath)
                         if (payload.contents) {
                             ws.write(payload.contents)
                         }
@@ -138,10 +131,10 @@ class FileSync {
                         reject(error)
                     })
                 } else {
-                    reject(new Error(`File type of ${payload.path} doesn\'t match ${payload.type}`))
+                    reject(new Error(`File type of ${filePath} doesn\'t match ${payload.type}`))
                 }
             }, () => {
-                reject(new Error(`File ${payload.path} doesn\'t exist`))
+                reject(new Error(`File ${filePath} doesn\'t exist`))
             })
         })
     }
@@ -149,15 +142,16 @@ class FileSync {
     // client
     onDelete(payload) {
         return new Promise((resolve, reject) => {
-            fs.promise.stat(payload.path)
+            let filePath = path.join(this.rootDir, payload.path)
+            fs.promise.stat(filePath)
             .then((stat) => {
                 if (stat.isDirectory()) {
-                    return rimraf.promise(payload.path).then(resolve)
+                    return rimraf.promise(filePath).then(resolve)
                 } else {
-                    return fs.promise.unlink(payload.path).then(resolve)
+                    return fs.promise.unlink(filePath).then(resolve)
                 }
             }, () => {
-                reject(new Error(`File ${payload.path} doesn\'t exist`))
+                reject(new Error(`File ${filePath} doesn\'t exist`))
             })
         })
     }
