@@ -6,18 +6,14 @@ let nodeify = require('bluebird-nodeify')
 let mime = require('mime-types')
 let mkdirp = require('mkdirp')
 let rimraf = require('rimraf')
-let yargv = require('yargs')
-
-let argv = yargv
-    .default('dir', process.cwd())
-    .argv
 
 require('longjohn')
 require('songbird')
 
+let helper = require('./helper')
+
+
 const NODE_ENV = process.env.NODE_ENV
-const PORT = process.env.PORT || 8000
-const ROOT_DIR = argv.dir
 
 let loadFsContents = (req, res, next) => {
     nodeify(async ()=> {
@@ -36,8 +32,8 @@ let loadFsContents = (req, res, next) => {
 }
 
 let setFileMeta = (req, res, next) => {
-    req.filePath = path.resolve(path.join(ROOT_DIR, req.url))
-    if (!req.filePath.startsWith(ROOT_DIR)) {
+    req.filePath = path.resolve(path.join(helper.ROOT_DIR, req.url))
+    if (!req.filePath.startsWith(helper.ROOT_DIR)) {
         res.status(400).send('Invalid path')
         return
     }
@@ -59,68 +55,74 @@ let setDirDetails = (req, res, next) => {
     next()
 }
 
-let app = express()
+function createServer() {
+    let app = express()
 
-if (NODE_ENV === 'devlopment') {
-    app.use(morgan('dev'))
+    if (NODE_ENV === 'devlopment') {
+        app.use(morgan('dev'))
+    }
+
+    app.listen(helper.PORT, () => {
+        console.log(`http server listening at http://127.0.0.1:${helper.PORT}`)
+    })
+
+    app.get('*', setFileMeta, loadFsContents, (req, res) => {
+        if(res.body) {
+            res.json(res.body)
+            return
+        } else {
+            fs.createReadStream(req.filePath).pipe(res)
+        }
+    })
+
+    app.head('*', setFileMeta, loadFsContents, (req, res) => {
+        res.end()
+    })
+
+    app.delete('*', setFileMeta, (req, res, next) => {
+        nodeify(async () => {
+            if (req.stat === null) {
+                return res.status(400).send('Invalid Path [Delete]')
+            }
+            if (req.stat.isDirectory()) {
+                await rimraf.promise(req.filePath)
+            } else {
+                await fs.promise.unlink(req.filePath)
+            }
+            res.end()
+        }(), next)
+    })
+
+    app.put('*', setFileMeta, setDirDetails, (req, res, next) => {
+        async () => {
+            if (req.stat) {
+                return res.status(405).send('File exists')
+            }
+            await mkdirp.promise(req.dirPath)
+            if (!req.isDir) {
+                req.pipe(fs.createWriteStream(req.filePath))
+            }
+            res.end()
+        }().catch(next)
+    })
+
+    app.post('*', setFileMeta, setDirDetails, (req, res, next) => {
+        async () => {
+            if (req.stat === null) {
+                return res.status(405).send('File does not exist')
+            } else if (req.isDir) {
+                return res.status(405).send('Path is a directory')
+            }
+
+            await fs.promise.truncate(req.filePath, 0)
+            if (!req.isDir) {
+                req.pipe(fs.createWriteStream(req.filePath))
+            }
+            res.end()
+        }().catch(next)
+    })
+
+    return app
 }
 
-app.listen(PORT, () => {
-    console.log(`listening at http://127.0.0.1:${PORT}`)
-})
-
-app.get('*', setFileMeta, loadFsContents, (req, res) => {
-    if(res.body) {
-        res.json(res.body)
-        return
-    } else {
-        fs.createReadStream(req.filePath).pipe(res)
-    }
-})
-
-app.head('*', setFileMeta, loadFsContents, (req, res) => {
-    res.end()
-})
-
-app.delete('*', setFileMeta, (req, res, next) => {
-    nodeify(async () => {
-        if (req.stat === null) {
-            return res.status(400).send('Invalid Path [Delete]')
-        }
-        if (req.stat.isDirectory()) {
-            await rimraf.promise(req.filePath)
-        } else {
-            await fs.promise.unlink(req.filePath)
-        }
-        res.end()
-    }(), next)
-})
-
-app.put('*', setFileMeta, setDirDetails, (req, res, next) => {
-    async () => {
-        if (req.stat) {
-            return res.status(405).send('File exists')
-        }
-        await mkdirp.promise(req.dirPath)
-        if (!req.isDir) {
-            req.pipe(fs.createWriteStream(req.filePath))
-        }
-        res.end()
-    }().catch(next)
-})
-
-app.post('*', setFileMeta, setDirDetails, (req, res, next) => {
-    async () => {
-        if (req.stat === null) {
-            return res.status(405).send('File does not exist')
-        } else if (req.isDir) {
-            return res.status(405).send('Path is a directory')
-        }
-
-        await fs.promise.truncate(req.filePath, 0)
-        if (!req.isDir) {
-            req.pipe(fs.createWriteStream(req.filePath))
-        }
-        res.end()
-    }().catch(next)
-})
+module.exports = createServer
