@@ -6,13 +6,17 @@
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
     <style>
         body         { padding-top:80px; word-wrap:break-word; }
+        article {
+          border-bottom: 5px solid #aaa;
+          margin-bottom: 2em;
+        }
     </style>
 </head>
 <body>
 <div class="container">
 
     <div class="page-header text-center">
-        <h1><span class="fa fa-user"></span> Profile Page</h1>
+        <h1><span class="fa fa-smile-o"></span> Profile Page</h1>
         <a href="/logout" class="btn btn-default btn-sm">Logout</a>
         <a href="/posts" class="btn btn-default btn-sm">Create New Blog Post</a>
     </div>
@@ -20,6 +24,19 @@
     <% if (typeof message !== 'undefined' && message.length > 0) { %>
         <div class="alert alert-danger"><%= message %></div>
     <% } %>
+
+    <section class="row">
+      <% for (var index = 0; index < user.posts.length; ++index) {
+          var post = user.posts[index]; %>
+        <article>
+        <header><h2><%= post.title %></h2></header>
+        <% if (typeof image !== 'undefined') { %>
+        <image src="<%= image %>" style="width: 100%;height: auto;" />
+        <% } %>
+        <%- post.renderedContent() %>
+        </article>
+      <% } %>
+    </section>
 
     <div class="row">
 
@@ -35,7 +52,6 @@
                     <strong>Blog Title</strong>: <%= user.blogTitle %><br>
                     <strong>Blog Description</strong>: <%= user.blogDescription %><br>
                 </p>
-                
         </div>
 
 </div>

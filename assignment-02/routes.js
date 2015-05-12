@@ -45,11 +45,12 @@ module.exports = (app) => {
     res.redirect('/')
   })
 
-  app.get('/posts/:postId?', then(async (req, res) => {
+  app.get('/posts/:postId?', isLoggedIn, then(async (req, res) => {
     let postId = req.params.postId
     if (!postId) {
       res.render('post.ejs', {
         post: {},
+        user: req.user,
         verb: 'Create'
       })
     } else {
@@ -58,22 +59,25 @@ module.exports = (app) => {
         res.send(404, 'Not found')
       }
       let dataUri = new DataUri
-      let image = dataUri.format('.' + post.image.contentType.split('/').pop(), post.image.data)
+      let image = post.image ? dataUri.format('.' + post.image.contentType.split('/').pop(), post.image.data) : ''
+
       res.render('post.ejs', {
         post: post,
+        user: req.user,
         verb: 'Update',
         image:  `data:${post.image.contentType};base64,${image.base64}`
       })
     }
   }))
 
-  app.post('/posts/:postId?', then(async (req, res) => {
+  app.post('/posts/:postId?', isLoggedIn, then(async (req, res) => {
     let postId = req.params.postId
     let [{ title: [title], content: [content]},{ image: [file] }] = await new multiparty.Form().promise.parse(req)
-    let post
+    let post, isNew = false
 
     if (!postId) {
       post = new Post()
+      isNew = true
     } else {
       post = await Post.promise.findById(postId)
       if (!post) {
@@ -90,6 +94,10 @@ module.exports = (app) => {
       post.image.contentType = file.headers['content-type']
     }
     await post.save()
+    if (isNew) {
+      req.user.posts.push(post)
+      await req.user.save()
+    }
     res.redirect('/posts/' + post._id)
     return
   }))

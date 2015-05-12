@@ -1,4 +1,5 @@
 let mongoose = require('mongoose')
+let marked = require('marked')
 require('songbird')
 
 let PostSchema = mongoose.Schema({
@@ -15,5 +16,9 @@ let PostSchema = mongoose.Schema({
     contentType: String
   }
 })
+
+PostSchema.methods.renderedContent = function() {
+  return marked(this.content)
+}
 
 module.exports = mongoose.model('Post', PostSchema)
