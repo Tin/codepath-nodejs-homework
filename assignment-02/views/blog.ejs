@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <title>Blog <%= user.blogTitle %></title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <style>
+        body         { padding-top:80px; word-wrap:break-word; }
+        article {
+          border-bottom: 5px solid #aaa;
+          padding-bottom: 1em;
+          margin-bottom: 2em;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="page-header text-center">
+        <h1><span class="fa fa-smile-o"></span> <%= user.blogTitle %></h1>
+        <p></p>
+    </div>
+
+    <section class="row">
+      <% if (user.posts) { %>
+        <% for (var index = 0; index < user.posts.length; ++index) {
+            var post = user.posts[index]; %>
+          <article>
+          <header><h2><%= post.title %></h2></header>
+          <% if (typeof image !== 'undefined') { %>
+          <image src="<%= image %>" style="width: 100%;height: auto;" />
+          <% } %>
+          <%- post.renderedContent() %>
+          <h3>Comments</h3>
+          <ul class="comments">
+            <% for (var j = 0; j < post.comments.length; ++j) { %>
+            <li><%- post.comments[j].renderedContent() %></li>
+            <% } %>
+          </ul>
+          <% if (req.isAuthenticated()) { %>
+          <form action="/posts/<%= post.id %>/comments" method="post">
+            <div class="form-group" required>
+              <label>Comment</label>
+              <textarea name="comment" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn">Submit</button>
+          </form>
+          <% } %>
+          </article>
+        <% } %> 
+      <% } else { %>
+          <h1>This guy has no blog entry posted yet.</h1>
+      <% } %>
+    </section>
+
+</div>
+</body>
+</html>

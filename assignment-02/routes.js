@@ -1,9 +1,12 @@
 let isLoggedIn = require('./middleware/isLoggedIn')
 let multiparty = require('multiparty')
 let then = require('express-then')
+let User = require('./models/user')
 let Post = require('./models/post')
+let Comment = require('./models/comment')
 let DataUri = require('datauri')
 let fs = require('fs')
+let ObjectId = require('mongoose').Types.ObjectId;
 
 module.exports = (app) => {
   let passport = app.passport
@@ -44,6 +47,37 @@ module.exports = (app) => {
     req.logout()
     res.redirect('/')
   })
+
+  app.get('/blog/:username', then(async (req, res) => {
+    let username = req.params.username
+    let user = await User.findOne({username})
+    if (!user) {
+      res.send(404, `Blog for %{user} Not found`)
+    } else {
+      res.render('blog.ejs', { user, req })
+    }
+  }))
+
+  app.post('/posts/:postId/comments', then(async (req, res) => {
+    let postId = req.params.postId
+    let postPage = req.headers['referer']
+    let user = await User.promise.findOne({'posts._id': new ObjectId(postId)})
+    if (!user) {
+      res.send(404, `Blog post with id %{postId} is not found`)
+    }
+    let post = user.posts.filter((post) => {
+      console.log(post._id, postId)
+      return '' + post._id === postId
+    })[0]
+    console.log('post', post)
+    let commentContent = req.body.comment
+    let comment = new Comment()
+    comment.comment = commentContent
+    post.comments.push(comment)
+    await comment.save()
+    await user.save()
+    res.redirect(postPage)
+  }))
 
   app.get('/posts/:postId?', isLoggedIn, then(async (req, res) => {
     let postId = req.params.postId

@@ -1,4 +1,5 @@
 let mongoose = require('mongoose')
+let Comment = require('./comment')
 let marked = require('marked')
 require('songbird')
 
@@ -14,7 +15,8 @@ let PostSchema = mongoose.Schema({
   image: {
     data: Buffer,
     contentType: String
-  }
+  },
+  comments: [Comment.schema]
 })
 
 PostSchema.methods.renderedContent = function() {
