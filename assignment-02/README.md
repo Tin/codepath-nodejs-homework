@@ -6,7 +6,7 @@ Start from git@github.com:CrabDude/nodejs-blogger-demo.git
 
 This is a basic Blogger clone to create a blog with comments.
 
-Time spent: `<Number of hours spent>`
+Time spent: `6h`
 
 ### Features
 
